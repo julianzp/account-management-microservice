@@ -1,15 +1,9 @@
-# Local environment files
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!.env.docker.example
 
-# Java / Maven
-target/
-*.class
-
-# IntelliJ
+**/target/
 .idea/
 *.iml
-
-# OS
 .DS_Store
