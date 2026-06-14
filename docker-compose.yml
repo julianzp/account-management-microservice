@@ -1,0 +1,139 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: banking-postgres
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - banking_postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banking-network
+
+  postgres-init:
+    image: postgres:16-alpine
+    container_name: banking-postgres-init
+    env_file:
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+
+        echo "Checking required databases..."
+
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'client_db'" | grep -q 1 \
+          || PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d postgres -c "CREATE DATABASE client_db"
+
+        PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'account_db'" | grep -q 1 \
+          || PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d postgres -c "CREATE DATABASE account_db"
+
+        echo "Databases are ready."
+    networks:
+      - banking-network
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: banking-rabbitmq
+    env_file:
+      - .env.docker
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - banking-network
+
+  client-service:
+    build:
+      context: ./client-service
+      dockerfile: Dockerfile
+    container_name: client-service
+    env_file:
+      - .env.docker
+    environment:
+      CLIENT_SERVICE_PORT: ${CLIENT_SERVICE_PORT}
+      CLIENT_DB_URL: ${CLIENT_DB_URL}
+      CLIENT_DB_USERNAME: ${CLIENT_DB_USERNAME}
+      CLIENT_DB_PASSWORD: ${CLIENT_DB_PASSWORD}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CLIENT_EVENTS_EXCHANGE: ${CLIENT_EVENTS_EXCHANGE}
+      CLIENT_CREATED_QUEUE: ${CLIENT_CREATED_QUEUE}
+      CLIENT_UPDATED_QUEUE: ${CLIENT_UPDATED_QUEUE}
+      CLIENT_CREATED_ROUTING_KEY: ${CLIENT_CREATED_ROUTING_KEY}
+      CLIENT_UPDATED_ROUTING_KEY: ${CLIENT_UPDATED_ROUTING_KEY}
+    ports:
+      - "${CLIENT_SERVICE_PORT}:${CLIENT_SERVICE_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - banking-network
+
+  account-movement-service:
+    build:
+      context: ./account-movement-service
+      dockerfile: Dockerfile
+    container_name: account-movement-service
+    env_file:
+      - .env.docker
+    environment:
+      ACCOUNT_SERVICE_PORT: ${ACCOUNT_SERVICE_PORT}
+      ACCOUNT_DB_URL: ${ACCOUNT_DB_URL}
+      ACCOUNT_DB_USERNAME: ${ACCOUNT_DB_USERNAME}
+      ACCOUNT_DB_PASSWORD: ${ACCOUNT_DB_PASSWORD}
+      RABBITMQ_HOST: ${RABBITMQ_HOST}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      CLIENT_EVENTS_EXCHANGE: ${CLIENT_EVENTS_EXCHANGE}
+      CLIENT_CREATED_QUEUE: ${CLIENT_CREATED_QUEUE}
+      CLIENT_UPDATED_QUEUE: ${CLIENT_UPDATED_QUEUE}
+      CLIENT_CREATED_ROUTING_KEY: ${CLIENT_CREATED_ROUTING_KEY}
+      CLIENT_UPDATED_ROUTING_KEY: ${CLIENT_UPDATED_ROUTING_KEY}
+    ports:
+      - "${ACCOUNT_SERVICE_PORT}:${ACCOUNT_SERVICE_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - banking-network
+
+volumes:
+  banking_postgres_data:
+
+networks:
+  banking-network:
+    driver: bridge
