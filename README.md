@@ -144,6 +144,34 @@ CLIENT_UPDATED_ROUTING_KEY=client.updated
 
 ---
 
+Ejemplo de `.env.local` (crear el archivo) para entorno local:
+
+```env
+CLIENT_SERVICE_PORT=8081
+ACCOUNT_SERVICE_PORT=8082
+
+CLIENT_DB_URL=jdbc:postgresql://localhost:5432/client_db
+CLIENT_DB_USERNAME=postgres
+CLIENT_DB_PASSWORD=postgres
+
+ACCOUNT_DB_URL=jdbc:postgresql://localhost:5432/account_db
+ACCOUNT_DB_USERNAME=postgres
+ACCOUNT_DB_PASSWORD=postgres
+
+RABBITMQ_HOST=localhost
+RABBITMQ_PORT=5672
+RABBITMQ_USERNAME=guest
+RABBITMQ_PASSWORD=guest
+
+CLIENT_EVENTS_EXCHANGE=client.exchange
+CLIENT_CREATED_QUEUE=client.created.queue
+CLIENT_UPDATED_QUEUE=client.updated.queue
+CLIENT_CREATED_ROUTING_KEY=client.created
+CLIENT_UPDATED_ROUTING_KEY=client.updated
+```
+
+---
+
 ## Levantar todo el proyecto con Docker
 
 Desde la raíz del proyecto:
