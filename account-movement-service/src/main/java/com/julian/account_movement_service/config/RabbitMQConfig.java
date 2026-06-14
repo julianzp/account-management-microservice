@@ -8,32 +8,33 @@ import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFacto
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@EnableConfigurationProperties(ClientEventsMessagingProperties.class)
 public class RabbitMQConfig {
 
-    public static final String CLIENT_EXCHANGE = "client.exchange";
-    public static final String CLIENT_CREATED_QUEUE = "client.created.queue";
-    public static final String CLIENT_UPDATED_QUEUE = "client.updated.queue";
+    private final ClientEventsMessagingProperties clientEventsProperties;
 
-    public static final String CLIENT_CREATED_ROUTING_KEY = "client.created";
-    public static final String CLIENT_UPDATED_ROUTING_KEY = "client.updated";
+    public RabbitMQConfig(ClientEventsMessagingProperties clientEventsProperties) {
+        this.clientEventsProperties = clientEventsProperties;
+    }
 
     @Bean
     public DirectExchange clientExchange() {
-        return new DirectExchange(CLIENT_EXCHANGE);
+        return new DirectExchange(clientEventsProperties.exchange());
     }
 
     @Bean
     public Queue clientCreatedQueue() {
-        return new Queue(CLIENT_CREATED_QUEUE, true);
+        return new Queue(clientEventsProperties.createdQueue(), true);
     }
 
     @Bean
     public Queue clientUpdatedQueue() {
-        return new Queue(CLIENT_UPDATED_QUEUE, true);
+        return new Queue(clientEventsProperties.updatedQueue(), true);
     }
 
     @Bean
@@ -41,7 +42,7 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(clientCreatedQueue())
                 .to(clientExchange())
-                .with(CLIENT_CREATED_ROUTING_KEY);
+                .with(clientEventsProperties.createdRoutingKey());
     }
 
     @Bean
@@ -49,7 +50,7 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(clientUpdatedQueue())
                 .to(clientExchange())
-                .with(CLIENT_UPDATED_ROUTING_KEY);
+                .with(clientEventsProperties.updatedRoutingKey());
     }
 
     @Bean

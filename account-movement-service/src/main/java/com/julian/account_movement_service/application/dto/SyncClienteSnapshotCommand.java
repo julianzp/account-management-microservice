@@ -1,6 +1,6 @@
-package com.julian.account_movement_service.infrastructure.messaging;
+package com.julian.account_movement_service.application.dto;
 
-public record ClienteEvent(
+public record SyncClienteSnapshotCommand(
         Long clienteId,
         String nombre,
         String identificacion,
