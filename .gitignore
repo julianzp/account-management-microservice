@@ -1,0 +1,15 @@
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Java / Maven
+target/
+*.class
+
+# IntelliJ
+.idea/
+*.iml
+
+# OS
+.DS_Store

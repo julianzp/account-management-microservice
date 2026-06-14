@@ -1,5 +1,6 @@
 package com.julian.client_service.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -8,32 +9,30 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@RequiredArgsConstructor
+@EnableConfigurationProperties(ClientEventsMessagingProperties.class)
 public class RabbitMQConfig {
 
-    public static final String CLIENT_EXCHANGE = "client.exchange";
-    public static final String CLIENT_CREATED_QUEUE = "client.created.queue";
-    public static final String CLIENT_UPDATED_QUEUE = "client.updated.queue";
-
-    public static final String CLIENT_CREATED_ROUTING_KEY = "client.created";
-    public static final String CLIENT_UPDATED_ROUTING_KEY = "client.updated";
+    private final ClientEventsMessagingProperties properties;
 
     @Bean
     public DirectExchange clientExchange() {
-        return new DirectExchange(CLIENT_EXCHANGE);
+        return new DirectExchange(properties.exchange());
     }
 
     @Bean
     public Queue clientCreatedQueue() {
-        return new Queue(CLIENT_CREATED_QUEUE, true);
+        return new Queue(properties.createdQueue(), true);
     }
 
     @Bean
     public Queue clientUpdatedQueue() {
-        return new Queue(CLIENT_UPDATED_QUEUE, true);
+        return new Queue(properties.updatedQueue(), true);
     }
 
     @Bean
@@ -41,7 +40,7 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(clientCreatedQueue())
                 .to(clientExchange())
-                .with(CLIENT_CREATED_ROUTING_KEY);
+                .with(properties.createdRoutingKey());
     }
 
     @Bean
@@ -49,7 +48,7 @@ public class RabbitMQConfig {
         return BindingBuilder
                 .bind(clientUpdatedQueue())
                 .to(clientExchange())
-                .with(CLIENT_UPDATED_ROUTING_KEY);
+                .with(properties.updatedRoutingKey());
     }
 
     @Bean

@@ -4,10 +4,10 @@ import com.julian.client_service.application.dto.ClienteResponse;
 import com.julian.client_service.application.dto.CreateClienteRequest;
 import com.julian.client_service.application.dto.UpdateClienteRequest;
 import com.julian.client_service.application.mapper.ClienteMapper;
+import com.julian.client_service.application.port.out.ClienteEventPublisherPort;
 import com.julian.client_service.domain.exception.DuplicateResourceException;
 import com.julian.client_service.domain.exception.ResourceNotFoundException;
 import com.julian.client_service.domain.model.Cliente;
-import com.julian.client_service.infrastructure.messaging.ClienteEventPublisher;
 import com.julian.client_service.infrastructure.persistence.repository.ClienteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,7 @@ public class ClienteService {
 
     private final ClienteRepository clienteRepository;
     private final ClienteMapper clienteMapper;
-    private final ClienteEventPublisher clienteEventPublisher;
+    private final ClienteEventPublisherPort clienteEventPublisherPort;
 
     @Transactional
     public ClienteResponse create(CreateClienteRequest request) {
@@ -32,7 +32,7 @@ public class ClienteService {
         Cliente cliente = clienteMapper.toEntity(request);
         Cliente savedCliente = clienteRepository.save(cliente);
 
-        clienteEventPublisher.publishClientCreated(savedCliente);
+        clienteEventPublisherPort.publishClientCreated(savedCliente);
 
         return clienteMapper.toResponse(savedCliente);
     }
@@ -59,7 +59,7 @@ public class ClienteService {
 
         Cliente updatedCliente = clienteRepository.save(cliente);
 
-        clienteEventPublisher.publishClientUpdated(updatedCliente);
+        clienteEventPublisherPort.publishClientUpdated(updatedCliente);
 
         return clienteMapper.toResponse(updatedCliente);
     }
@@ -72,7 +72,7 @@ public class ClienteService {
 
         Cliente updatedCliente = clienteRepository.save(cliente);
 
-        clienteEventPublisher.publishClientUpdated(updatedCliente);
+        clienteEventPublisherPort.publishClientUpdated(updatedCliente);
 
         return clienteMapper.toResponse(updatedCliente);
     }
@@ -85,7 +85,7 @@ public class ClienteService {
 
         Cliente updatedCliente = clienteRepository.save(cliente);
 
-        clienteEventPublisher.publishClientUpdated(updatedCliente);
+        clienteEventPublisherPort.publishClientUpdated(updatedCliente);
     }
 
     private Cliente findEntityById(Long clienteId) {
